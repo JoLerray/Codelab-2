@@ -9,6 +9,9 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
 using System.Windows;
+using System.Security;
+using System.Diagnostics;
+
 namespace Codelab_2
 {
     public partial class Form1 : Form
@@ -16,6 +19,7 @@ namespace Codelab_2
 
 
         List<Item> itemsVal = new List<Item>();
+        String path = null;
         private class Item
         {
             public int hierarchy; public string text; public int status; public string name;
@@ -30,9 +34,8 @@ namespace Codelab_2
             ToolStripMenuItem _item = new ToolStripMenuItem(itemsVal[id].text);
             _item.ForeColor = Color.FromArgb(35,47,52);
             _item.BackColor = Color.FromArgb(74, 101, 114);
-            if (hierarchy == itemsVal[id].hierarchy)
-            {
-                switch (itemsVal[id].status)
+          
+            switch (itemsVal[id].status)
                 {
                     case 0:
                         {
@@ -55,39 +58,43 @@ namespace Codelab_2
                 }
 
                 if (itemsVal[id].name != "") return _item;
-                if (itemsVal[id].name == "")
+                if (itemsVal[id].name == "") {
+               
+                while (hierarchy < itemsVal[id + 1].hierarchy)
                 {
-                    hierarchy = itemsVal[id].hierarchy + 1;
-
-                    while (hierarchy <= itemsVal[id + 1].hierarchy)
-                    {
-                        _item.DropDownItems.Add(createMenuItem(id + 1, hierarchy));
-                        id++;
-                        if (id + 1 >= itemsVal.Count) break;
+                    if (hierarchy + 1 == itemsVal[id + 1].hierarchy) {
+                        _item.DropDownItems.Add(createMenuItem(id + 1,hierarchy + 1));
                     }
+                    id++;
+                    if (id + 1 >= itemsVal.Count) break;
+               
+                }
 
                 }
                 return _item;
-            }
-            ToolStripMenuItem __item = new ToolStripMenuItem();
-            __item.Visible = false;
-            __item.Enabled = false;
-            return __item;
+
 
         }
         public Form1()
         {
             InitializeComponent();
-            string path = (@"C:\Users\EshDel\Desktop\Design.txt");
-            StreamReader file = new StreamReader(path);
-            ToolStripMenuItem fileItem = new ToolStripMenuItem("file");
+
+            menuStrip1.Renderer = new ToolStripProfessionalRenderer(new Cols());
+
+
+        }
+        private void ReadValueFromFile(StreamReader file)
+        {
+           
             List<string> DesignItems = new List<string>();
             while (true)
             {
                 try
                 {
                     var val = file.ReadLine();
+                    
                     if (val == null) break;
+                    
                     DesignItems.Add(val);
 
                 }
@@ -98,30 +105,124 @@ namespace Codelab_2
             }
             foreach (var item in DesignItems)
             {
-                var valueArray =  item.Split();
+                var valueArray = item.Split();
+               
                 int hierarchy = System.Convert.ToInt32(valueArray[0]);
-                string text = valueArray[1]; 
-                int status =  System.Convert.ToInt32(valueArray[2]);
+                
+                string text = valueArray[1];
+                
+                int status = System.Convert.ToInt32(valueArray[2]);
+                
                 string name = "";
+               
                 if (valueArray.Length == 4) name = (valueArray[3]);
+               
                 itemsVal.Add(new Item(hierarchy, text, status, name));
 
             }
-            for(int i = 0; i < itemsVal.Count; i++)
-            {
-                if (itemsVal[i].hierarchy == 0) this.menuStrip1.Items.Add(createMenuItem(i));
-            }
-            menuStrip1.Renderer = new ToolStripProfessionalRenderer(new Cols());
-
-
         }
-
+        private void setItemsInInterface(List<Item> items)
+        {
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].hierarchy == 0) this.menuStrip1.Items.Add(createMenuItem(i));
+            }
+        }
         private void Form1_Load(object sender, EventArgs e)
         {
 
         }
 
         private void menuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                
+                try
+                {
+                    path = openFileDialog1.FileName;
+                    this.textBox1.Text ="Current file: " + path;
+                       
+                }
+                catch (SecurityException ex)
+                {
+                    MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
+                    $"Details:\n\n{ex.StackTrace}");
+                }
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if(path != null)
+            {
+                try
+                {
+                    using (Stream str = openFileDialog1.OpenFile())
+                    {
+                        Process.Start("notepad.exe", path);
+                        str.Close();
+                    }
+                }
+                catch (SecurityException ex)
+                {
+                    MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
+                    $"Details:\n\n{ex.StackTrace}");
+                }
+                return;
+            }
+
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                   
+                    using (Stream str = openFileDialog1.OpenFile())
+                    {
+                        Process.Start("notepad.exe", path);
+                        str.Close();
+                    }
+                }
+                catch (SecurityException ex)
+                {
+                    MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
+                    $"Details:\n\n{ex.StackTrace}");
+                }
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            itemsVal.Clear();
+            this.menuStrip1.Items.Clear();
+
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            StreamReader File;
+            try
+            {
+                itemsVal.Clear();
+                File = new StreamReader(path);
+                ReadValueFromFile(File);
+                setItemsInInterface(itemsVal);
+                File.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Security error.\n\nError message: {ex.Message}\n\n" +
+                    $"Details:\n\n{ex.StackTrace}");
+            }
+
+        }
+
+        private void button5_Click(object sender, EventArgs e)
         {
 
         }
